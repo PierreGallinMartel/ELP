@@ -77,7 +77,7 @@ func main() {
 	print(imerr)
 	//size := img.Bounds().Size()
 	//rect := image.Rect(0, 0, size.X, size.Y)
-	kernell := [][]int{{1, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {1, 1, 1, 1, 1}}
+	kernell := [][]int{{1, 1, 1}, {1, 1, 1}, {1, 1, 1}}
 	wImg := Convolution(&img, kernell)
 
 	ext := filepath.Ext(imgPath)
