@@ -110,5 +110,5 @@ function formatCommand(c)
 
 //nohup()
 
-//This code did not seem to work on MacOS. When running it in alone in a separate file, we couldn't
+//This code did not seem to work on my computer. When running it in alone in a separate file, we couldn't
 //exit the shell but when we clicked on the cross and closed the terminal window the process would stop. 
