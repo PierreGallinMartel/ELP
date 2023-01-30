@@ -43,8 +43,6 @@ init _ =
 
 type Msg
   = GotText (Result Http.Error String)
-  | GotDef (Result Hrrp.Error String)
-
 
 
 update : Msg -> Model -> (Model, Cmd Msg)
@@ -54,14 +52,6 @@ update msg model =
       case result of
         Ok fullText ->
           (Success fullText, Cmd.none)
-
-        Err _ ->
-          (Failure, Cmd.none)
-
-    GotDef result ->
-       case result of
-        Ok def ->
-          (DefinitonOk def, Cmd.none)
 
         Err _ ->
           (Failure, Cmd.none)
