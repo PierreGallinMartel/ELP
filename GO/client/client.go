@@ -12,6 +12,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"time"
 )
 
 func check(err error) {
@@ -21,36 +22,36 @@ func check(err error) {
 }
 
 func main() {
-	//imgPath := "C:/Users/pierr/Desktop/Programmation/ELP/ELP/GO/random_stuff/images/satellite.jpg"
-	if len(os.Args) < 2 {
-		fmt.Println("Please give the image path as an argument")
+	if len(os.Args) < 3 {
+		fmt.Println("Please give both the image path and the filtering threshold (recommended value: 80")
 		os.Exit(1)
 	}
-	if len(os.Args) > 2 {
+	if len(os.Args) > 3 {
 		fmt.Println("Too many arguments")
 		os.Exit(1)
 	}
 	imgPath := os.Args[1]
-	print("c'est" + string(imgPath) + "ahahah")
-	c, err := net.Dial("tcp", ":8001")
+	s_string := os.Args[2]
+	c, err := net.Dial("tcp", ":8004")
 	check(err)
 	fmt.Println("Successfully connected to " + c.RemoteAddr().String())
 
-	fmt.Fprintf(c, openImage(imgPath)+"\n") //When connected, send the image as a base64 string
+	fmt.Fprintf(c, openImage(imgPath)+"\n")
+	time.Sleep(1 * time.Second)
+	fmt.Fprintf(c, s_string+"\n")
 	message, _ := bufio.NewReader(c).ReadString('\n')
-	fmt.Print("->: " + message)
+	fmt.Println("->: image came back")
 	byteImage, _ := base64.StdEncoding.DecodeString(message)
 	jpgImage, err := jpeg.Decode(bytes.NewReader(byteImage))
-	print("ahaha")
 	check(err)
 	ext := filepath.Ext(imgPath)
 	name := strings.TrimSuffix(filepath.Base(imgPath), ext)
-	newImagePath := fmt.Sprintf("%s/%s_blurred_edged_mthreaded%s", filepath.Dir(imgPath), name, ext)
+	newImagePath := fmt.Sprintf("%s/%s_filtered_at_%s %s", filepath.Dir(imgPath), name, s_string, ext)
 	fg, err := os.Create(newImagePath)
 	defer fg.Close()
 	check(err)
 	err = jpeg.Encode(fg, jpgImage, nil)
-	print("done")
+	fmt.Println("done")
 	check(err)
 }
 

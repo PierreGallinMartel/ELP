@@ -11,26 +11,36 @@ import (
 	"math"
 	"net"
 	"strconv"
+	"strings"
 	"sync"
 )
 
 const (
 	con_host = "localhost"
-	con_port = ":8001"
+	con_port = ":8004"
 )
 
 var connectedClients = 0
 var received = ""
 
+func TrimSuffix(s, suffix string) string {
+	if strings.HasSuffix(s, suffix) {
+		s = s[:len(s)-len(suffix)]
+	}
+	return s
+}
 func handleCo(c net.Conn) {
 	fmt.Println("New client connected with " + c.RemoteAddr().String())
 	temp, err := bufio.NewReader(c).ReadString('\n') // receive message
 	check(err)
-
+	s_string, err := bufio.NewReader(c).ReadString('\n')
+	s_string = TrimSuffix(s_string, "\n")
+	s, _ := strconv.Atoi(s_string)
+	check(err)
 	byteImage, _ := base64.StdEncoding.DecodeString(temp)    //returns the bytes represented by the base64 string
 	jpgImage, err := jpeg.Decode(bytes.NewReader(byteImage)) //Decodes the image using a byte reader
 	check(err)
-	result := imageProcessing(jpgImage)
+	result := imageProcessing(jpgImage, int(s))
 	_ = result
 	// For now we just check if we receive the image correctly by exporting it. This is where your add your Gaussian blur magic
 	check(err)
@@ -154,7 +164,7 @@ func edgeDetection_Worker(wg *sync.WaitGroup, img *image.RGBA, wImg *image.RGBA,
 
 }
 
-func imageProcessing(img image.Image) *image.RGBA {
+func imageProcessing(img image.Image, s_int int) *image.RGBA {
 	worker_amount := 20
 	var wg sync.WaitGroup
 	var matrice = [][]int{{1, 1, 1}, {1, 1, 1}, {1, 1, 1}}
@@ -185,7 +195,7 @@ func imageProcessing(img image.Image) *image.RGBA {
 	close(jobs)
 	jobs = make(chan [2]int, numJobs)
 	var s float64
-	s = 80
+	s = float64(s_int)
 	for w := 0; w < worker_amount; w++ {
 		go edgeDetection_Worker(&wg, convolutionImage, edgeDetectionImage, jobs, s, size)
 	}
