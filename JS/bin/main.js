@@ -10,6 +10,8 @@ console.log("list (similar to ls)")
 console.log("lp (simimlar to ps)")
 console.log("ping _website_name_")
 console.log("bing [-k,-p,-c] _pid_ (kills, pauses or continues process)")
+console.log("Add ' !' at the end of your commands to run them in the background (don't forget the space before the !)")
+console.log("Ctrl-p to exit the shell")
 
 //If ctrl-p pressed then exit shell
 readline.emitKeypressEvents(process.stdin);
