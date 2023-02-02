@@ -7,6 +7,7 @@ import Html.Attributes exposing (..)
 import Http
 import Array
 import Random
+import Json.Decode exposing (Decoder, map, field, int, string, at, list)
 
 type alias Model =
     { words : List String
@@ -29,9 +30,11 @@ view model =
             , button [onClick GuessWord] [text "Confirm word"]
             --, div [] [text model.errorMessage]
             --, viewRand model
-            , viewWord model
-            , viewDef model
             , viewRes model
+            , div[][]
+            , div[][]
+            --, viewWord model
+            , viewDef model
         ]
 
 viewRand : Model -> Html Msg
@@ -82,9 +85,9 @@ viewWord model =
 
 
 type Msg
-    = SendHttpRequest
-    | DataReceived (Result Http.Error String)
-    | DefReceived (Result Http.Error String)
+    = --SendHttpRequest
+     DataReceived (Result Http.Error String)
+    | DefReceived (Result Http.Error (List (List (List String))))
     | GenerateRandomNumber
     | NewRandomNumber Int
     | GuessWord
@@ -103,12 +106,12 @@ url =
 --         , expect = Http.expectString DataReceived
 --         }
 
-getDef: Cmd Msg
-getDef = 
-    Http.get
-        { url = "http://worldtimeapi.org/api/timezone/Europe/Paris"
-        , expect = Http.expectString DefReceived
-        }
+-- getDef: Cmd Msg
+-- getDef = 
+--     Http.get
+--         { url = "http://worldtimeapi.org/api/timezone/Europe/Paris"
+--         , expect = Http.expectString DefReceived
+--         }
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
@@ -122,22 +125,22 @@ update msg model =
                 dudu = Array.get number arr
                 a = Maybe.withDefault "........." dudu
             in
-            ( {model | random = number, currentOne = a}, Http.get
-                { url = "http://worldtimeapi.org/api/timezone/Europe/Paris"
-                , expect = Http.expectString DefReceived
+            ( {model | random = number, currentOne = a, rightOrWrong = "Guess the word !"}, Http.get
+                { url = "https://api.dictionaryapi.dev/api/v2/entries/en/" ++ a
+                , expect = Http.expectJson DefReceived decoder1
                 }
             )
         Change newContent ->
             ({ model | guess = newContent }, Cmd.none)
         
         GuessWord ->
-            if model.currentOne == "" then ({model |rightOrWrong = "You haven't started the game !"}, Cmd.none)
-            else if model.guess == "" then ({model |rightOrWrong = "You haven't written anything..."}, Cmd.none)
-            else if model.guess == model.currentOne then ({model |rightOrWrong = "Yay :)"}, Cmd.none)
-            else ({model | rightOrWrong = "Try again !"}, Cmd.none)
+            if model.currentOne == "" then ({model |rightOrWrong = "You haven't started the game !", guess = ""}, Cmd.none)
+            else if model.guess == "" then ({model |rightOrWrong = "You haven't written anything...", guess=""}, Cmd.none)
+            else if model.guess == model.currentOne then ({model |rightOrWrong = ("Yay :) It was " ++ model.currentOne ++ " !"), guess = ""}, Cmd.none)
+            else ({model | rightOrWrong = "Try again !", guess = ""}, Cmd.none)
 
-        SendHttpRequest ->
-            ( model, getDef )
+        -- SendHttpRequest ->
+        --     ( model, getDef )
 
         DataReceived (Ok wordsStr) ->
             let
@@ -153,7 +156,13 @@ update msg model =
             )
         
         DefReceived (Ok res) ->
-            ({model | currentDef = res, errorMessage = "received"}, Cmd.none)
+            let
+                arr = Array.fromList res
+                subList = Array.get 0 arr
+                c = Maybe.withDefault ([["........."]]) subList
+                d = List.map (\def -> String.join " " def) c
+            in
+            ({model | currentDef = (String.join " " d), errorMessage = "received"}, Cmd.none)
         
         DefReceived (Err httpError) ->
             ( { model
@@ -163,7 +172,18 @@ update msg model =
             )
 
 
+decoder4 : Decoder String
+decoder4 =
+    field "definition" string
 
+decoder3 = at ["definitions"] (Json.Decode.list decoder4)
+
+decoder2 = at ["meanings"] (Json.Decode.list decoder3 )
+
+decoder1 = Json.Decode.list decoder2
+
+
+  
 
 init : () -> ( Model, Cmd Msg )
 init _ =
