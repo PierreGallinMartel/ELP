@@ -13,19 +13,22 @@ type alias Model =
      , currentOne : String
      , errorMessage : String
      , currentDef : String
+     , currentDefList : (List String)
      , random : Int
      , guess : String
      , rightOrWrong : String
      , solution : String
      , score : Int
      , totalAttempt : Int
+     , mode : String
     }
 
 view : Model -> Html Msg
 view model =
     div []
         [ 
-              button [onClick GenerateRandomNumber,style "text-align" "right"] [text "Get random word"]
+              button [onClick GetRandomWord] [text "Get random word"]
+            , button [onClick SwitchDifficulty] [text ("Switch mode (currently in " ++ model.mode ++ " mode)")]
             , div[][ text ("Score : " ++ (String.fromInt model.score) ++ "/" ++ (String.fromInt model.totalAttempt))]
             , br[][]
             , input [ placeholder "Guess word", value model.guess, onInput Change] []
@@ -64,11 +67,13 @@ viewWord model =
 type Msg
     = DataReceived (Result Http.Error String)
     | DefReceived (Result Http.Error (List (List (List String))))
-    | GenerateRandomNumber
+    | GetRandomWord
     | NewRandomNumber Int
     | GuessWord
     | Change String
     | ShowSolution
+    | SwitchDifficulty
+    | HandleHardMode Int 
 
 
 url : String
@@ -79,7 +84,7 @@ url =
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
-        GenerateRandomNumber ->
+        GetRandomWord ->
             ( model, Random.generate NewRandomNumber (Random.int 0 999) )
 
         NewRandomNumber number ->
@@ -127,20 +132,44 @@ update msg model =
             )
         
         DefReceived (Ok res) ->
-            let
-                arr = Array.fromList res
-                subList = Array.get 0 arr
-                c = Maybe.withDefault ([["........."]]) subList
-                d = List.map (\def -> String.join " " def) c
-            in
-            ({model | currentDef = (String.join " " d), errorMessage = "received"}, Cmd.none)
+            if model.mode == "beginner" then
+                (let
+                    arr = Array.fromList res
+                    subList = Array.get 0 arr
+                    c = Maybe.withDefault ([["........."]]) subList
+                    d = List.map (\def -> String.join " " def) c
+                in
+                ({model | currentDef = (String.join " " d), errorMessage = "received"}, Cmd.none))
+            else 
+                (let
+                    arr = Array.fromList res
+                    subList = Array.get 0 arr
+                    b = Maybe.withDefault ([["........."]]) subList
+                    arr2 = Array.fromList b
+                    subList2 = Array.get 0 arr2
+                    c = Maybe.withDefault (["........."]) subList2
+                in
+                ({model| currentDefList = c}, Random.generate HandleHardMode (Random.int 0 (List.length(c)-1))))
         
+        HandleHardMode number ->
+            let 
+                arr = Array.fromList model.currentDefList
+                randomDef = Maybe.withDefault ("") (Array.get number arr)
+            in
+            ({model| currentDef=randomDef}, Cmd.none)
+
+
         DefReceived (Err httpError) ->
             ( { model
                 | errorMessage = "Problem with def"
               }
             , Cmd.none
             )
+        SwitchDifficulty ->
+            case model.mode of
+                "beginner" ->({model | mode = "advanced"}, Cmd.none)
+                "advanced" -> ({model | mode = "beginner"}, Cmd.none)
+                _ -> (model, Cmd.none)   
 
 
 decoder4 : Decoder String
@@ -168,6 +197,8 @@ init _ =
       , solution = ""
       , score = 0
       , totalAttempt = 0
+      , mode = "beginner"
+      , currentDefList = []
       }
     ,   Http.get
         { url = "http://localhost:8000/wordList.txt"
