@@ -32,7 +32,7 @@ func main() {
 	}
 	imgPath := os.Args[1]
 	s_string := os.Args[2]
-	c, err := net.Dial("tcp", ":8004")
+	c, err := net.Dial("tcp", ":8000")
 	check(err)
 	fmt.Println("Successfully connected to " + c.RemoteAddr().String())
 

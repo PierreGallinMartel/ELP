@@ -10,14 +10,16 @@ import (
 	"image/jpeg"
 	"math"
 	"net"
+	"os"
 	"strconv"
 	"strings"
 	"sync"
+	"time"
 )
 
 const (
 	con_host = "localhost"
-	con_port = ":8004"
+	con_port = ":8000"
 )
 
 var connectedClients = 0
@@ -40,10 +42,12 @@ func handleCo(c net.Conn) {
 	byteImage, _ := base64.StdEncoding.DecodeString(temp)    //returns the bytes represented by the base64 string
 	jpgImage, err := jpeg.Decode(bytes.NewReader(byteImage)) //Decodes the image using a byte reader
 	check(err)
+	start := time.Now()
 	result := imageProcessing(jpgImage, int(s))
-	_ = result
+	elapsed := time.Since(start)
 	// For now we just check if we receive the image correctly by exporting it. This is where your add your Gaussian blur magic
 	check(err)
+	fmt.Println("processing took ", elapsed)
 	fmt.Println("Correctly receiveced image")
 
 	fmt.Fprintf(c, openImage(result)+"\n") //When connected, send the image as a base64 string
@@ -166,6 +170,10 @@ func edgeDetection_Worker(wg *sync.WaitGroup, img *image.RGBA, wImg *image.RGBA,
 
 func imageProcessing(img image.Image, s_int int) *image.RGBA {
 	worker_amount := 20
+	if len(os.Args) > 1 {
+		worker_amount_string := os.Args[1]
+		worker_amount, _ = strconv.Atoi(worker_amount_string)
+	}
 	var wg sync.WaitGroup
 	var matrice = [][]int{{1, 1, 1}, {1, 1, 1}, {1, 1, 1}}
 	const numJobs = 1000
