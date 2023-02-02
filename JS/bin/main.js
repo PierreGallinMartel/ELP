@@ -5,13 +5,13 @@ var prompt = require('prompt');
 var exec = require('child_process').exec;
 
 console.log("Welcome to Scrim! Here is a list of everything you can do:")
-console.log("launch _path_to_app_")
-console.log("list (similar to ls)")
-console.log("lp (simimlar to ps)")
-console.log("ping _website_name_")
-console.log("bing [-k,-p,-c] _pid_ (kills, pauses or continues process)")
-console.log("Add ' !' at the end of your commands to run them in the background (don't forget the space before the !)")
-console.log("Ctrl-p to exit the shell")
+console.log("\nlaunch _path_to_app_ (allows you to run any command like ls, ping or ps as if you were in a normal shell. example : launch ls)")
+console.log("\nlist (similar to ls, does NOT need the launch word before it)")
+console.log("\nlp (simimlar to ps, does NOT need the launch word before it)")
+console.log("\nping _website_name_ (does NOT need the launch word before it")
+console.log("\nbing [-k,-p,-c] _pid_ (kills, pauses or continues process, does NOT need the launch word before it)")
+console.log("\nAdd ' !' at the end of your commands to run them in the background (don't forget the space before the !)")
+console.log("\nCtrl-p to exit the shell")
 
 //If ctrl-p pressed then exit shell
 readline.emitKeypressEvents(process.stdin);
@@ -65,7 +65,12 @@ function formatCommand(c)
         switch (cm[0])
           {
             case "launch": 
-              if (cm.length>1 & cm[1]!="") txt = "open " + cm[1] + background;
+              program=""
+              if (cm.length>1)
+                {
+                  for (var x = 1; x<cm.length; x++) program += cm[x]+ " "     
+                }
+              if (program!="") txt = program;
               else console.log("Incomplete command.")
               break;
 
@@ -112,5 +117,5 @@ function formatCommand(c)
 
 //nohup()
 
-//This code did not seem to work on my computer. When running it in alone in a separate file, we couldn't
+//This code did not seem to work on MacOS. When running it in alone in a separate file, we couldn't
 //exit the shell but when we clicked on the cross and closed the terminal window the process would stop. 
