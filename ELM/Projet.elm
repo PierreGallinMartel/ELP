@@ -1,5 +1,4 @@
 module Projet exposing (main)
-
 import Browser
 import Html exposing (..)
 import Html.Events exposing (onClick, onInput)
@@ -17,24 +16,29 @@ type alias Model =
      , random : Int
      , guess : String
      , rightOrWrong : String
+     , solution : String
+     , score : Int
+     , totalAttempt : Int
     }
 
 view : Model -> Html Msg
 view model =
     div []
         [ 
-            --button [ onClick SendHttpRequest ][ text "Get data from server" ]
-              button [onClick GenerateRandomNumber] [text "Get random word"]
-            , div[][]
+              button [onClick GenerateRandomNumber,style "text-align" "right"] [text "Get random word"]
+            , div[][ text ("Score : " ++ (String.fromInt model.score) ++ "/" ++ (String.fromInt model.totalAttempt))]
+            , br[][]
             , input [ placeholder "Guess word", value model.guess, onInput Change] []
             , button [onClick GuessWord] [text "Confirm word"]
+            , button [onClick ShowSolution] [text "Show solution"]
             --, div [] [text model.errorMessage]
             --, viewRand model
             , viewRes model
-            , div[][]
-            , div[][]
+            , br[][]
             --, viewWord model
             , viewDef model
+            , br[][]
+            , div[] [text model.solution]
         ]
 
 viewRand : Model -> Html Msg
@@ -57,61 +61,20 @@ viewWord : Model-> Html Msg
 viewWord model =
     div [] [text (model.currentOne)]
 
--- viewWord : Model -> Html Msg
--- viewWord model = 
---     makeWordOkay model.currentOne
-
-
--- makeWordOkay : String -> Html Msg
--- makeWordOkay w=
---     div [] [text w]
-
--- viewFullList : Model -> Html Msg
--- viewFullList model =
---     viewNicknames model.words 
-
-
--- viewNicknames : List String -> Html Msg
--- viewNicknames words =
---     div []
---         [ h3 [] [ text "Old School Main Characters" ]
---         , ul [] (List.map viewNickname words )
---         ]
-
-
--- viewNickname : String -> Html Msg
--- viewNickname nickname =
---     li [] [ text nickname ]
-
-
 type Msg
-    = --SendHttpRequest
-     DataReceived (Result Http.Error String)
+    = DataReceived (Result Http.Error String)
     | DefReceived (Result Http.Error (List (List (List String))))
     | GenerateRandomNumber
     | NewRandomNumber Int
     | GuessWord
     | Change String
+    | ShowSolution
 
 
 url : String
 url =
     "http://localhost:8000/wordList.txt"
 
-
--- getWords : Cmd Msg
--- getWords =
---     Http.get
---         { url = url
---         , expect = Http.expectString DataReceived
---         }
-
--- getDef: Cmd Msg
--- getDef = 
---     Http.get
---         { url = "http://worldtimeapi.org/api/timezone/Europe/Paris"
---         , expect = Http.expectString DefReceived
---         }
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
@@ -125,7 +88,7 @@ update msg model =
                 dudu = Array.get number arr
                 a = Maybe.withDefault "........." dudu
             in
-            ( {model | random = number, currentOne = a, rightOrWrong = "Guess the word !"}, Http.get
+            ( {model | solution = "", random = number, currentOne = a, rightOrWrong = "Guess the word !"}, Http.get
                 { url = "https://api.dictionaryapi.dev/api/v2/entries/en/" ++ a
                 , expect = Http.expectJson DefReceived decoder1
                 }
@@ -133,15 +96,23 @@ update msg model =
         Change newContent ->
             ({ model | guess = newContent }, Cmd.none)
         
+        ShowSolution ->
+            if model.solution=="" && model.currentOne/=""
+            then ({model | solution = model.currentOne, totalAttempt= model.totalAttempt+1}, Cmd.none)
+            else (model, Cmd.none)
+
         GuessWord ->
             if model.currentOne == "" then ({model |rightOrWrong = "You haven't started the game !", guess = ""}, Cmd.none)
             else if model.guess == "" then ({model |rightOrWrong = "You haven't written anything...", guess=""}, Cmd.none)
-            else if model.guess == model.currentOne then ({model |rightOrWrong = ("Yay :) It was " ++ model.currentOne ++ " !"), guess = ""}, Cmd.none)
-            else ({model | rightOrWrong = "Try again !", guess = ""}, Cmd.none)
-
-        -- SendHttpRequest ->
-        --     ( model, getDef )
-
+            else if model.guess == model.currentOne && model.solution =="" then ({model |rightOrWrong = ("Yay, you found the word :)")
+                                                                , guess = ""
+                                                                , solution = model.currentOne
+                                                                , score = model.score+1
+                                                                , totalAttempt=model.totalAttempt+1}, Cmd.none)
+            else if model.guess == model.currentOne && model.solution /="" then ({model |rightOrWrong = ("You're not getting points for that x)")
+                                                                , guess = ""}, Cmd.none)
+            else if model.solution=="" then ({model | rightOrWrong = "Try again !", guess = "", totalAttempt=model.totalAttempt+1}, Cmd.none)
+            else ({model |  guess=""}, Cmd.none)
         DataReceived (Ok wordsStr) ->
             let
                 words = String.split " " wordsStr
@@ -194,6 +165,9 @@ init _ =
       , random = 0
       , guess = ""
       , rightOrWrong = "Start the game !"
+      , solution = ""
+      , score = 0
+      , totalAttempt = 0
       }
     ,   Http.get
         { url = "http://localhost:8000/wordList.txt"
